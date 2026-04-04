@@ -22,17 +22,17 @@ Responsive Experience: Built with a mobile-first approach for users on the move.
 
 **Tech Stack**
 
-Frontend: Next.js 14 (App Router), React, TypeScript
+Frontend: **Next.js 14 (App Router), React, TypeScript**
 
-Styling: Tailwind CSS
+Styling: **Tailwind CSS**
 
-Animations: Framer Motion
+Animations: **Framer Motion**
 
-Backend & Database: Firebase (Firestore & Auth)
+Backend & Database: **Firebase (Firestore & Auth)**
 
-Maps: React-Leaflet
+Maps: **React-Leaflet**
 
-Deployment: Vercel
+Deployment: **Vercel**
 
 **Architecture**
 

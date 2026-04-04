@@ -48,7 +48,7 @@ function calculateSyntheticHeadcount(baseCount: number, locationType: string, ac
 
 const pageVariants = {
   initial: { opacity: 0, x: 20 },
-  animate: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
+  animate: { opacity: 1, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
   exit: { opacity: 0, x: -20, transition: { duration: 0.2 } }
 };
 
@@ -137,187 +137,187 @@ export default function CIVIQDashboard() {
         )}
       </div>
 
-      <motion.main 
+      <motion.main
         animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,1)' }}
         className="min-[100dvh] text-[#FFFFFF] font-mono select-none relative z-10 max-w-lg mx-auto flex flex-col pointer-events-none"
       >
         {/* Global Overlays */}
-      <div className="scanlines" />
-      {flash && <div className="fixed inset-0 pointer-events-none z-[100] transmission-flash" />}
+        <div className="scanlines" />
+        {flash && <div className="fixed inset-0 pointer-events-none z-[100] transmission-flash" />}
 
-      {/* Sticky Top Header */}
-      <motion.header 
-        animate={{ 
-          backdropFilter: isSatelite ? 'blur(12px)' : 'blur(0px)',
-          backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)'
-        }}
-        className="sticky top-0 z-40 border-b-[0.5px] border-[#39FF14]/50 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)] flex items-center justify-between will-change-backdrop-filter pointer-events-auto"
-      >
-        <div className="flex items-center gap-2">
-          <RadarPulse color="#39FF14" />
-          <span className="text-[12px] font-bold text-[#39FF14] tracking-widest neon-text">SYS:ON</span>
-        </div>
-        <div className="text-right pointer-events-auto flex items-center gap-3">
-          {isSatelite && (
-            <button 
-               onClick={() => document.dispatchEvent(new CustomEvent('map-locate-user'))}
-               className="px-2 py-1 bg-black/40 border-[0.5px] border-[#00F0FF] text-[#00F0FF] text-[9px] font-bold tracking-widest uppercase active:scale-95 transition-transform backdrop-blur-md shadow-[0_0_8px_rgba(0,240,255,0.3)] hover:bg-[#00F0FF]/10"
-            >
-               LOCATE
-            </button>
-          )}
-          {displayCoords ? (
-            <div className={`text-[10px] tracking-widest flex flex-col items-end drop-shadow-md font-bold ${isSatelite ? 'text-[#00F0FF]' : 'text-[#9AA0A6]'}`}>
-              <span>[LAT:{(displayCoords.lat).toFixed(4)}]</span>
-              <span>[LNG:{(displayCoords.lng).toFixed(4)}]</span>
-            </div>
-          ) : <span className="text-[10px] text-[#9AA0A6] tracking-widest animate-pulse">AWAITING COORDS...</span>}
-        </div>
-      </motion.header>
-
-      {/* Tab Content Wrapper */}
-      <div className={`flex-1 relative pb-[120px] ${activeTab === 'OVERWATCH' ? 'pointer-events-none' : 'overflow-y-auto pointer-events-auto'}`}>
-        <AnimatePresence mode="wait">
-          
-          {/* OVERWATCH TAB */}
-          {activeTab === 'OVERWATCH' && (
-            <motion.div key="OVERWATCH" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col h-full relative z-20 pointer-events-none">
-              
-              {/* Map Toggle Controls */}
-              <motion.div 
-                 animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)' }}
-                 className="p-4 flex items-center justify-between border-b-[0.5px] border-white/10 relative z-20 backdrop-blur-md will-change-backdrop-filter pointer-events-auto"
+        {/* Sticky Top Header */}
+        <motion.header
+          animate={{
+            backdropFilter: isSatelite ? 'blur(12px)' : 'blur(0px)',
+            backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)'
+          }}
+          className="sticky top-0 z-40 border-b-[0.5px] border-[#39FF14]/50 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)] flex items-center justify-between will-change-backdrop-filter pointer-events-auto"
+        >
+          <div className="flex items-center gap-2">
+            <RadarPulse color="#39FF14" />
+            <span className="text-[12px] font-bold text-[#39FF14] tracking-widest neon-text">SYS:ON</span>
+          </div>
+          <div className="text-right pointer-events-auto flex items-center gap-3">
+            {isSatelite && (
+              <button
+                onClick={() => document.dispatchEvent(new CustomEvent('map-locate-user'))}
+                className="px-2 py-1 bg-black/40 border-[0.5px] border-[#00F0FF] text-[#00F0FF] text-[9px] font-bold tracking-widest uppercase active:scale-95 transition-transform backdrop-blur-md shadow-[0_0_8px_rgba(0,240,255,0.3)] hover:bg-[#00F0FF]/10"
               >
-                 <span className="text-[10px] uppercase text-[#9AA0A6] tracking-widest font-bold">RADAR MODE</span>
-                 <div className="flex bg-black/40 p-1 border-[0.5px] border-white/10 backdrop-blur-md">
+                LOCATE
+              </button>
+            )}
+            {displayCoords ? (
+              <div className={`text-[10px] tracking-widest flex flex-col items-end drop-shadow-md font-bold ${isSatelite ? 'text-[#00F0FF]' : 'text-[#9AA0A6]'}`}>
+                <span>[LAT:{(displayCoords.lat).toFixed(4)}]</span>
+                <span>[LNG:{(displayCoords.lng).toFixed(4)}]</span>
+              </div>
+            ) : <span className="text-[10px] text-[#9AA0A6] tracking-widest animate-pulse">AWAITING COORDS...</span>}
+          </div>
+        </motion.header>
+
+        {/* Tab Content Wrapper */}
+        <div className={`flex-1 relative pb-[120px] ${activeTab === 'OVERWATCH' ? 'pointer-events-none' : 'overflow-y-auto pointer-events-auto'}`}>
+          <AnimatePresence mode="wait">
+
+            {/* OVERWATCH TAB */}
+            {activeTab === 'OVERWATCH' && (
+              <motion.div key="OVERWATCH" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex flex-col h-full relative z-20 pointer-events-none">
+
+                {/* Map Toggle Controls */}
+                <motion.div
+                  animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)' }}
+                  className="p-4 flex items-center justify-between border-b-[0.5px] border-white/10 relative z-20 backdrop-blur-md will-change-backdrop-filter pointer-events-auto"
+                >
+                  <span className="text-[10px] uppercase text-[#9AA0A6] tracking-widest font-bold">RADAR MODE</span>
+                  <div className="flex bg-black/40 p-1 border-[0.5px] border-white/10 backdrop-blur-md">
                     <button onClick={() => setMapMode('VECTOR')} className={`px-3 py-1 text-[10px] font-bold uppercase transition-all ${!isSatelite ? 'bg-[#39FF14] text-black shadow-[0_0_10px_#39FF14]' : 'text-[#9AA0A6]'}`}>VECTOR</button>
                     <button onClick={() => setMapMode('SATELLITE')} className={`px-3 py-1 text-[10px] font-bold uppercase transition-all ${isSatelite ? 'bg-[#39FF14] text-black shadow-[0_0_10px_#39FF14]' : 'text-[#9AA0A6]'}`}>SATELLITE</button>
-                 </div>
-              </motion.div>
+                  </div>
+                </motion.div>
 
-              {/* Hero HUD Elements */}
-              <div className="relative flex-1 flex flex-col items-center justify-center pointer-events-none z-10 py-20 px-4 min-h-[50vh]">
-                <p className="text-[11px] text-[#39FF14] uppercase tracking-[0.1em] font-bold shadow-black drop-shadow-md neon-text text-center mb-6">
-                  LIVE NODE DENSITY
-                </p>
-                
-                {/* [ BRACKETS ] */}
-                <div className="flex items-center justify-center gap-4">
-                   <span className="text-6xl md:text-7xl font-light text-[#9AA0A6]/50">[</span>
-                   <p className="text-8xl md:text-9xl font-bold heavy-neon-glow my-2 text-[#FFFFFF]">
-                     {heroVenue ? <NumberCounter value={heroHeadcount} decimals={0} /> : '---'}
-                   </p>
-                   <span className="text-6xl md:text-7xl font-light text-[#9AA0A6]/50">]</span>
+                {/* Hero HUD Elements */}
+                <div className="relative flex-1 flex flex-col items-center justify-center pointer-events-none z-10 py-20 px-4 min-h-[50vh]">
+                  <p className="text-[11px] text-[#39FF14] uppercase tracking-[0.1em] font-bold shadow-black drop-shadow-md neon-text text-center mb-6">
+                    LIVE NODE DENSITY
+                  </p>
+
+                  {/* [ BRACKETS ] */}
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="text-6xl md:text-7xl font-light text-[#9AA0A6]/50">[</span>
+                    <p className="text-8xl md:text-9xl font-bold heavy-neon-glow my-2 text-[#FFFFFF]">
+                      {heroVenue ? <NumberCounter value={heroHeadcount} decimals={0} /> : '---'}
+                    </p>
+                    <span className="text-6xl md:text-7xl font-light text-[#9AA0A6]/50">]</span>
+                  </div>
+
+                  <p className="text-[14px] text-[#FFFFFF] font-bold tracking-[0.05em] uppercase px-4 drop-shadow-md mt-6">
+                    {heroVenue ? heroVenue.name : 'NO FOCUS'}
+                  </p>
+                  {heroVenue && (
+                    <motion.div
+                      animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.8)' }}
+                      className="mt-3 px-3 py-1 border-[0.5px] border-[#39FF14]/50 text-[10px] uppercase text-[#39FF14] backdrop-blur-md will-change-backdrop-filter flex items-center gap-2 pointer-events-auto"
+                    >
+                      <Crosshair size={12} /> TARGET LOCKED | {userDistance ? formatDistance(userDistance) : '—'}
+                    </motion.div>
+                  )}
                 </div>
+              </motion.div>
+            )}
 
-                <p className="text-[14px] text-[#FFFFFF] font-bold tracking-[0.05em] uppercase px-4 drop-shadow-md mt-6">
-                  {heroVenue ? heroVenue.name : 'NO FOCUS'}
-                </p>
-                {heroVenue && (
-                  <motion.div 
-                    animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.8)' }}
-                    className="mt-3 px-3 py-1 border-[0.5px] border-[#39FF14]/50 text-[10px] uppercase text-[#39FF14] backdrop-blur-md will-change-backdrop-filter flex items-center gap-2 pointer-events-auto"
-                  >
-                     <Crosshair size={12} /> TARGET LOCKED | {userDistance ? formatDistance(userDistance) : '—'}
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* LOGS TAB */}
-          {activeTab === 'LOGS' && (
-            <motion.div key="LOGS" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="p-4 z-20 relative min-h-[50vh]">
-               <p className="text-[11px] text-[#9AA0A6] uppercase tracking-[0.05em] mb-3 backdrop-blur-sm inline-block px-2 bg-black/40 border border-white/10 will-change-backdrop-filter">GRID STATUS LOGS</p>
-               <div className="flex flex-col gap-3">
-                 {isInitializing ? (
-                   <><SkeletonLoader /><SkeletonLoader /></>
-                 ) : venues.length === 0 ? (
-                   <div className="py-8 text-center border-[0.5px] border-white/10 bg-black/40 backdrop-blur-md will-change-backdrop-filter">
-                     <span className="text-[11px] text-[#9AA0A6]">NO ZONES DETECTED</span>
-                   </div>
-                 ) : venues.map(venue => {
+            {/* LOGS TAB */}
+            {activeTab === 'LOGS' && (
+              <motion.div key="LOGS" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="p-4 z-20 relative min-h-[50vh]">
+                <p className="text-[11px] text-[#9AA0A6] uppercase tracking-[0.05em] mb-3 backdrop-blur-sm inline-block px-2 bg-black/40 border border-white/10 will-change-backdrop-filter">GRID STATUS LOGS</p>
+                <div className="flex flex-col gap-3">
+                  {isInitializing ? (
+                    <><SkeletonLoader /><SkeletonLoader /></>
+                  ) : venues.length === 0 ? (
+                    <div className="py-8 text-center border-[0.5px] border-white/10 bg-black/40 backdrop-blur-md will-change-backdrop-filter">
+                      <span className="text-[11px] text-[#9AA0A6]">NO ZONES DETECTED</span>
+                    </div>
+                  ) : venues.map(venue => {
                     const { headcount, confidence } = calculateSyntheticHeadcount(venue.estimated_headcount, venue.locationType, venue.active_nodes);
                     const capPct = getCapacityPercent(headcount, venue.max_capacity);
                     return (
-                      <motion.div 
+                      <motion.div
                         initial={{ backgroundColor: 'rgba(0,0,0,1)' }}
                         animate={{ backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.9)' }}
-                        key={venue.id} 
+                        key={venue.id}
                         className="flex flex-col p-4 border border-white/10 backdrop-blur-md will-change-backdrop-filter pointer-events-auto"
                       >
                         <div className="flex items-center justify-between font-bold mb-2">
-                           <span className="text-[12px] uppercase truncate text-[#FFFFFF] drop-shadow-md">{venue.name}</span>
-                           <span className="text-[11px] text-[#39FF14] neon-text">{headcount} ENTS</span>
+                          <span className="text-[12px] uppercase truncate text-[#FFFFFF] drop-shadow-md">{venue.name}</span>
+                          <span className="text-[11px] text-[#39FF14] neon-text">{headcount} ENTS</span>
                         </div>
                         <LinearProgressBar percent={capPct} color={getCapacityColor(capPct)} />
                         <div className="flex items-center justify-between mt-3 text-[10px] text-[#9AA0A6] uppercase tracking-widest drop-shadow-md">
-                           <span>CONFIDENCE: {confidence}%</span>
-                           <div className="flex items-center gap-1">
-                              <span>{venue.crowdLevel === 'low' ? 'STABLE' : 'ALERT'}</span>
-                              <RadarPulse color={venue.crowdLevel === 'low' ? '#39FF14' : '#EA4335'} />
-                           </div>
+                          <span>CONFIDENCE: {confidence}%</span>
+                          <div className="flex items-center gap-1">
+                            <span>{venue.crowdLevel === 'low' ? 'STABLE' : 'ALERT'}</span>
+                            <RadarPulse color={venue.crowdLevel === 'low' ? '#39FF14' : '#EA4335'} />
+                          </div>
                         </div>
                       </motion.div>
                     )
-                 })}
-               </div>
-            </motion.div>
-          )}
+                  })}
+                </div>
+              </motion.div>
+            )}
 
-          {/* SYSTEM TAB */}
-          {activeTab === 'SYSTEM' && (
-            <motion.div key="SYSTEM" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="p-4 z-20 relative text-center text-[#9AA0A6] text-[11px] uppercase tracking-widest py-10 min-h-[50vh]">
-               SYSTEM CONFIGURATION LOCKED. <br/> [ PHASE 4 AWAITING CLEARANCE ]
-            </motion.div>
-          )}
+            {/* SYSTEM TAB */}
+            {activeTab === 'SYSTEM' && (
+              <motion.div key="SYSTEM" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="p-4 z-20 relative text-center text-[#9AA0A6] text-[11px] uppercase tracking-widest py-10 min-h-[50vh]">
+                SYSTEM CONFIGURATION LOCKED. <br /> [ PHASE 4 AWAITING CLEARANCE ]
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Floating Action Button */}
+        {activeTab !== 'SYSTEM' && (
+          <button onClick={() => setIsActionSheetOpen(true)} className="fixed bottom-[calc(env(safe-area-inset-bottom)+80px)] right-6 w-14 h-14 bg-black/80 backdrop-blur-md border-[1px] border-[#39FF14] rounded-none flex items-center justify-center z-40 active:scale-95 active:bg-[#39FF14] active:text-black transition-all appearance-none shadow-[0_0_15px_rgba(57,255,20,0.6)] text-[#39FF14] will-change-backdrop-filter pointer-events-auto">
+            <Plus size={28} />
+          </button>
+        )}
+
+        {/* Fixed Bottom Naval Navigation */}
+        <motion.nav
+          animate={{
+            backdropFilter: isSatelite ? 'blur(12px)' : 'blur(0px)',
+            backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)'
+          }}
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#39FF14]/30 pb-[calc(env(safe-area-inset-bottom)+12px)] max-w-lg mx-auto flex pt-3 items-center px-2 will-change-backdrop-filter pointer-events-auto"
+        >
+          {[
+            { id: 'OVERWATCH', icon: MapIcon, label: 'OVERWATCH' },
+            { id: 'LOGS', icon: Rows, label: 'LOGS' },
+            { id: 'SYSTEM', icon: Settings, label: 'SYSTEM' }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform appearance-none ${isActive ? 'text-[#39FF14] neon-text drop-shadow-[0_0_5px_rgba(57,255,20,1)]' : 'text-[#9AA0A6]'}`}>
+                <tab.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                <span className="text-[9px] font-bold tracking-widest">{tab.label}</span>
+              </button>
+            )
+          })}
+        </motion.nav>
+
+        {/* Action Sheet Background Overlay */}
+        <AnimatePresence>
+          {isActionSheetOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={() => setIsActionSheetOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] touch-none will-change-backdrop-filter pointer-events-auto" />}
         </AnimatePresence>
-      </div>
 
-      {/* Floating Action Button */}
-      {activeTab !== 'SYSTEM' && (
-        <button onClick={() => setIsActionSheetOpen(true)} className="fixed bottom-[calc(env(safe-area-inset-bottom)+80px)] right-6 w-14 h-14 bg-black/80 backdrop-blur-md border-[1px] border-[#39FF14] rounded-none flex items-center justify-center z-40 active:scale-95 active:bg-[#39FF14] active:text-black transition-all appearance-none shadow-[0_0_15px_rgba(57,255,20,0.6)] text-[#39FF14] will-change-backdrop-filter pointer-events-auto">
-          <Plus size={28} />
-        </button>
-      )}
-
-      {/* Fixed Bottom Naval Navigation */}
-      <motion.nav 
-        animate={{ 
-          backdropFilter: isSatelite ? 'blur(12px)' : 'blur(0px)',
-          backgroundColor: isSatelite ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,1)'
-        }}
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#39FF14]/30 pb-[calc(env(safe-area-inset-bottom)+12px)] max-w-lg mx-auto flex pt-3 items-center px-2 will-change-backdrop-filter pointer-events-auto"
-      >
-         {[
-           { id: 'OVERWATCH', icon: MapIcon, label: 'OVERWATCH' },
-           { id: 'LOGS', icon: Rows, label: 'LOGS' },
-           { id: 'SYSTEM', icon: Settings, label: 'SYSTEM' }
-         ].map(tab => {
-           const isActive = activeTab === tab.id;
-           return (
-             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform appearance-none ${isActive ? 'text-[#39FF14] neon-text drop-shadow-[0_0_5px_rgba(57,255,20,1)]' : 'text-[#9AA0A6]'}`}>
-               <tab.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-               <span className="text-[9px] font-bold tracking-widest">{tab.label}</span>
-             </button>
-           )
-         })}
-      </motion.nav>
-
-      {/* Action Sheet Background Overlay */}
-      <AnimatePresence>
-        {isActionSheetOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={() => setIsActionSheetOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] touch-none will-change-backdrop-filter pointer-events-auto" />}
-      </AnimatePresence>
-
-      {/* Action Sheet */}
-      <AnimatePresence>
-        {isActionSheetOpen && (
-           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: 0.2, ease: "easeOut" }} className="fixed bottom-0 left-0 right-0 z-[70] bg-black/60 backdrop-blur-xl border-t-[1px] border-[#39FF14] max-h-[85vh] overflow-y-auto w-full max-w-lg mx-auto shadow-[0_-5px_20px_rgba(57,255,20,0.15)] pb-[calc(env(safe-area-inset-bottom)+20px)] will-change-backdrop-filter pointer-events-auto">
-             <div className="sticky top-0 bg-black/80 backdrop-blur-md z-10 px-6 py-4 border-b-[0.5px] border-[#202124] flex items-center justify-between will-change-backdrop-filter">
+        {/* Action Sheet */}
+        <AnimatePresence>
+          {isActionSheetOpen && (
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: 0.2, ease: "easeOut" }} className="fixed bottom-0 left-0 right-0 z-[70] bg-black/60 backdrop-blur-xl border-t-[1px] border-[#39FF14] max-h-[85vh] overflow-y-auto w-full max-w-lg mx-auto shadow-[0_-5px_20px_rgba(57,255,20,0.15)] pb-[calc(env(safe-area-inset-bottom)+20px)] will-change-backdrop-filter pointer-events-auto">
+              <div className="sticky top-0 bg-black/80 backdrop-blur-md z-10 px-6 py-4 border-b-[0.5px] border-[#202124] flex items-center justify-between will-change-backdrop-filter">
                 <span className="text-[12px] font-bold text-[#39FF14] tracking-widest neon-text">MANUAL INJECTION</span>
                 <button onClick={() => setIsActionSheetOpen(false)} className="p-2 -mr-2 text-[#9AA0A6] active:scale-95 appearance-none"><X size={20} /></button>
-             </div>
-             <div className="p-6 flex flex-col gap-6">
+              </div>
+              <div className="p-6 flex flex-col gap-6">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.05em] text-[#9AA0A6] mb-2 drop-shadow-md">1. TEST CALIBRATION CONTEXT</p>
                   <CustomDropdown value={testLocation} onChange={(val) => setTestLocation(val as any)} options={[{ value: 'current', label: 'HW LOCATOR [GPS_RAW]' }, { value: 'cst', label: 'NODE [19.076, 72.877]' }, { value: 'user', label: 'STATIC RELAY [19.214, 72.872]' }]} />
@@ -331,16 +331,16 @@ export default function CIVIQDashboard() {
                   <input type="number" min="0" placeholder="ENTER COUNT" value={reportHeadcount} onChange={(e) => setReportHeadcount(e.target.value)} className="w-full bg-black/40 backdrop-blur-md border border-white/10 text-[#FFFFFF] text-[13px] px-4 min-h-[48px] font-mono focus:outline-none transition-all duration-200 tracking-[0.05em] rounded-none appearance-none placeholder-[#9AA0A6] hover:bg-black/60 active:border-[#39FF14] will-change-backdrop-filter" />
                 </div>
                 <div className={`mt-2 px-4 py-3 min-h-[48px] text-[11px] uppercase tracking-[0.05em] flex items-center justify-center gap-3 bg-black/40 backdrop-blur-md rounded-none will-change-backdrop-filter ${isWithin500m ? 'border-[1px] border-[#39FF14] text-[#39FF14]' : 'border-[0.5px] border-[#EA4335]/50 text-[#EA4335]'}`}>
-                    {isWithin500m ? <><RadarPulse color="#39FF14" /><span>SYNC MATCHED</span></> : <><span className="w-2 h-2 bg-[#EA4335] block rounded-none opacity-50" /><span>OUT OF RANGE</span></>}
+                  {isWithin500m ? <><RadarPulse color="#39FF14" /><span>SYNC MATCHED</span></> : <><span className="w-2 h-2 bg-[#EA4335] block rounded-none opacity-50" /><span>OUT OF RANGE</span></>}
                 </div>
                 <button disabled={!selectedVenue || !reportHeadcount || !isWithin500m || submitStatus === 'submitting'} onClick={handleSubmit} className={`mt-4 w-full px-8 min-h-[48px] text-[12px] font-bold tracking-[0.05em] uppercase transition-all duration-200 appearance-none flex items-center justify-center rounded-none active:scale-95 ${!selectedVenue || !reportHeadcount || !isWithin500m || submitStatus === 'submitting' ? 'bg-black/20 text-[#9AA0A6] border-[0.5px] border-[#202124] backdrop-blur-sm' : 'bg-[#39FF14]/90 backdrop-blur-md text-[#000000] active:brightness-125 cursor-pointer shadow-[0_0_15px_rgba(57,255,20,0.6)] border border-[#39FF14]'}`}>
                   {submitStatus === 'submitting' ? 'UPLINKING...' : submitStatus === 'error' ? 'UPLINK FAILED' : 'EXECUTE INJECTION'}
                 </button>
-             </div>
-           </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.main>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.main>
     </>
   );
 }

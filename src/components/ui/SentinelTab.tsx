@@ -69,7 +69,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
       const lat = coordinates?.lat || 0;
       const lng = coordinates?.lng || 0;
       // SentinelTab.tsx update
-      const response = await fetch("https://ecology-coasting-who.ngrok-free.dev/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
+      const response = await fetch("https://ecology-coasting-whoopee.ngrok-free.dev/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

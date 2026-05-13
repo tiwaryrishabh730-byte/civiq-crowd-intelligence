@@ -11,7 +11,8 @@ import { RadarPulse } from '@/components/ui/RadarPulse';
 import { CustomDropdown } from '@/components/ui/CustomDropdown';
 import { LinearProgressBar } from '@/components/ui/LinearProgressBar';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { Plus, X, Crosshair, Map as MapIcon, Rows, Settings } from 'lucide-react';
+import { Plus, X, Crosshair, Map as MapIcon, Rows, Settings, Bot } from 'lucide-react';
+import { SentinelTab } from '@/components/ui/SentinelTab';
 import dynamic from 'next/dynamic';
 
 const TacticalMap = dynamic(() => import('@/components/ui/TacticalMap').then(mod => mod.TacticalMap), { ssr: false });
@@ -63,7 +64,7 @@ export default function CIVIQDashboard() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [testLocation, setTestLocation] = useState<'current' | 'cst' | 'user'>('current');
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'OVERWATCH' | 'LOGS' | 'SYSTEM'>('OVERWATCH');
+  const [activeTab, setActiveTab] = useState<'OVERWATCH' | 'LOGS' | 'SYSTEM' | 'SENTINEL'>('OVERWATCH');
   const [mapMode, setMapMode] = useState<'VECTOR' | 'SATELLITE'>('VECTOR');
   const [flash, setFlash] = useState(false);
 
@@ -271,11 +272,18 @@ export default function CIVIQDashboard() {
                 SYSTEM CONFIGURATION LOCKED. <br /> [ PHASE 4 AWAITING CLEARANCE ]
               </motion.div>
             )}
+
+            {/* SENTINEL TAB */}
+            {activeTab === 'SENTINEL' && (
+              <motion.div key="SENTINEL" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="z-20 relative min-h-[50vh]">
+                <SentinelTab coordinates={displayCoords} />
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
         {/* Floating Action Button */}
-        {activeTab !== 'SYSTEM' && (
+        {activeTab !== 'SYSTEM' && activeTab !== 'SENTINEL' && (
           <button onClick={() => setIsActionSheetOpen(true)} className="fixed bottom-[calc(env(safe-area-inset-bottom)+80px)] right-6 w-14 h-14 bg-black/80 backdrop-blur-md border-[1px] border-[#39FF14] rounded-none flex items-center justify-center z-40 active:scale-95 active:bg-[#39FF14] active:text-black transition-all appearance-none shadow-[0_0_15px_rgba(57,255,20,0.6)] text-[#39FF14] will-change-backdrop-filter pointer-events-auto">
             <Plus size={28} />
           </button>
@@ -292,6 +300,7 @@ export default function CIVIQDashboard() {
           {[
             { id: 'OVERWATCH', icon: MapIcon, label: 'OVERWATCH' },
             { id: 'LOGS', icon: Rows, label: 'LOGS' },
+            { id: 'SENTINEL', icon: Bot, label: 'SENTINEL' },
             { id: 'SYSTEM', icon: Settings, label: 'SYSTEM' }
           ].map(tab => {
             const isActive = activeTab === tab.id;

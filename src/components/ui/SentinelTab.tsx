@@ -7,10 +7,16 @@ import ReactMarkdown from 'react-markdown';
 import { RadarPulse } from './RadarPulse';
 const getSessionId = () => {
   if (typeof window === 'undefined') return ''; // Next.js/SSR safety
-  let id = localStorage.getItem('sentinel_session');
+
+  // Admin Override for Local Development
+  if (window.location.hostname === 'localhost') {
+    return 'operator_rishabh_77';
+  }
+
+  let id = localStorage.getItem('civiq_session_id');
   if (!id) {
-    id = 'session_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('sentinel_session', id);
+    id = 'user_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('civiq_session_id', id);
   }
   return id;
 };
@@ -76,7 +82,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
           chatInput: text,
           user_lat: lat,
           user_lng: lng,
-          session_id: "operator_rishabh_77"
+          session_id: getSessionId()
         })
       });
       if (!response.ok) {

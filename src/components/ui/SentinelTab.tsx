@@ -76,7 +76,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
           chatInput: text,
           user_lat: lat,
           user_lng: lng,
-          session_id: getSessionId()
+          session_id: "operator_rishabh_77"
         })
       });
       if (!response.ok) {

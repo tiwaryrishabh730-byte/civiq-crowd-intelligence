@@ -50,12 +50,23 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
   }, []);
 
   const handleLogin = async () => {
-    if (!auth) return;
+    if (!auth) {
+      console.error("Firebase Auth not initialized. Check your config.");
+      setError("Uplink Error: Auth System Offline");
+      return;
+    }
     const provider = new GoogleAuthProvider();
     try {
+      setError(null); // Clear previous errors
       await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error("Login failed:", err);
+    } catch (err: any) {
+      console.error("CIVIQ AUTH ERROR:", {
+        code: err.code,
+        message: err.message,
+        email: err.customData?.email,
+        credential: GoogleAuthProvider.credentialFromError(err)
+      });
+      setError(`Access Denied: ${err.message}`);
     }
   };
 
@@ -229,6 +240,13 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
             <LogIn size={16} className="group-hover:translate-x-1 transition-transform" />
             Authorize Operator Profile
           </button>
+
+          {error && (
+            <div className="p-3 bg-[#EA4335]/10 border border-[#EA4335]/30 flex items-center gap-3 max-w-[280px]">
+              <AlertCircle size={16} className="text-[#EA4335] shrink-0" />
+              <span className="text-[10px] text-[#EA4335] font-mono leading-tight uppercase tracking-tighter">{error}</span>
+            </div>
+          )}
           
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1 h-1 rounded-full bg-[#EA4335] animate-pulse" />

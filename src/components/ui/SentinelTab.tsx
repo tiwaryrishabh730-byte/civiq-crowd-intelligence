@@ -2,24 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Cpu, Terminal, AlertCircle, RefreshCcw, User } from 'lucide-react';
+import { Send, Cpu, Terminal, AlertCircle, RefreshCcw, User as UserIcon, LogOut, LogIn, ShieldCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { RadarPulse } from './RadarPulse';
-const getSessionId = () => {
-  if (typeof window === 'undefined') return ''; // Next.js/SSR safety
+import { auth } from '@/lib/firebase';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, User } from 'firebase/auth';
 
-  // Admin Override for Local Development
-  if (window.location.hostname === 'localhost') {
-    return 'operator_rishabh_77';
-  }
-
-  let id = localStorage.getItem('civiq_session_id');
-  if (!id) {
-    id = 'user_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('civiq_session_id', id);
-  }
-  return id;
-};
+const ADMIN_UID_PLACEHOLDER = "YOUR_ADMIN_UID_HERE"; // Replace with your actual Firebase UID later
 interface Message {
   sender: 'user' | 'sentinel';
   text: string;
@@ -48,6 +37,31 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
+  };
+
+  const handleLogout = () => {
+    if (auth) signOut(auth);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,7 +88,16 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     try {
       const lat = coordinates?.lat || 0;
       const lng = coordinates?.lng || 0;
-      // SentinelTab.tsx update
+      
+      // Admin Override Logic
+      let finalSessionId = user?.uid || 'anonymous';
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        finalSessionId = 'operator_rishabh_77';
+      }
+      if (user?.uid === ADMIN_UID_PLACEHOLDER) {
+        finalSessionId = 'operator_rishabh_77';
+      }
+
       const response = await fetch("https://ecology-coasting-whoopee.ngrok-free.dev/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,7 +105,8 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
           chatInput: text,
           user_lat: lat,
           user_lng: lng,
-          session_id: getSessionId()
+          session_id: finalSessionId,
+          user_name: user?.displayName || 'Unknown Operator'
         })
       });
       if (!response.ok) {
@@ -162,6 +186,59 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     );
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] w-full max-w-lg mx-auto bg-black/20 backdrop-blur-md border-x border-[#39FF14]/20 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#39FF14 1px, transparent 1px), linear-gradient(90deg, #39FF14 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+        <RefreshCcw className="text-[#39FF14] animate-spin mb-4" size={32} />
+        <span className="text-[#39FF14] font-mono text-xs tracking-widest uppercase animate-pulse">Initializing Neural Link...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] w-full max-w-lg mx-auto bg-black/20 backdrop-blur-md border-x border-[#39FF14]/20 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#39FF14 1px, transparent 1px), linear-gradient(90deg, #39FF14 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="z-10 p-8 bg-black/60 border border-[#39FF14]/30 backdrop-blur-xl flex flex-col items-center gap-6 shadow-[0_0_50px_rgba(57,255,20,0.1)] mx-4"
+        >
+          <div className="relative">
+            <div className="p-4 rounded-full bg-[#39FF14]/10 border border-[#39FF14]/20">
+              <ShieldCheck size={48} className="text-[#39FF14]" />
+            </div>
+            <div className="absolute -top-2 -right-2">
+              <RadarPulse color="#39FF14" />
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-[#39FF14] tracking-[0.3em] uppercase neon-text mb-2">CIVIQ SENTINEL</h2>
+            <p className="text-[10px] text-[#9AA0A6] font-mono tracking-wider max-w-[240px] uppercase">
+              Uplink Forbidden. Secure Identity Token Required to Access Tactical Intelligence.
+            </p>
+          </div>
+
+          <button
+            onClick={handleLogin}
+            className="flex items-center gap-3 px-6 py-3 bg-[#39FF14] text-black font-bold text-[11px] tracking-[0.2em] uppercase hover:shadow-[0_0_20px_#39FF14] transition-all active:scale-95 group"
+          >
+            <LogIn size={16} className="group-hover:translate-x-1 transition-transform" />
+            Authorize Operator Profile
+          </button>
+          
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-1 h-1 rounded-full bg-[#EA4335] animate-pulse" />
+            <span className="text-[8px] text-[#EA4335]/70 font-mono uppercase tracking-tighter italic">Secured by G-AUTH Sentinel Protocol</span>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full max-w-lg mx-auto bg-black/20 backdrop-blur-md border-x border-[#39FF14]/20 relative overflow-hidden">
       {/* Sentinel Header */}
@@ -181,9 +258,18 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] text-[#9AA0A6] font-mono">UPLINK_STABLE</span>
-          <span className="text-[8px] text-[#39FF14]/50 font-mono tracking-tighter">SECURE_CHANNEL_v4.2</span>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] text-[#39FF14] font-mono font-bold uppercase truncate max-w-[80px]">{user.displayName?.split(' ')[0]}</span>
+            <span className="text-[7px] text-[#9AA0A6] font-mono uppercase tracking-tighter italic">ID: {user.uid.slice(0, 8)}...</span>
+          </div>
+          <button 
+            onClick={handleLogout} 
+            title="De-authorize"
+            className="p-1.5 border border-[#EA4335]/30 bg-[#EA4335]/10 hover:bg-[#EA4335]/20 transition-all active:scale-90"
+          >
+            <LogOut size={12} className="text-[#EA4335]" />
+          </button>
         </div>
       </div>
 
@@ -200,9 +286,9 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
               <div className="flex items-center gap-2 mb-1">
                 {msg.sender === 'sentinel' && <Terminal size={12} className="text-[#39FF14]" />}
                 <span className={`text-[10px] font-bold tracking-widest uppercase ${msg.sender === 'user' ? 'text-[#00F0FF]' : 'text-[#39FF14]'}`}>
-                  {msg.sender === 'user' ? 'Operator' : 'Sentinel'}
+                  {msg.sender === 'user' ? (user.displayName?.split(' ')[0] || 'Operator') : 'Sentinel'}
                 </span>
-                {msg.sender === 'user' && <User size={12} className="text-[#00F0FF]" />}
+                {msg.sender === 'user' && <UserIcon size={12} className="text-[#00F0FF]" />}
               </div>
 
               <div className={`px-4 py-3 text-[13px] font-mono leading-relaxed shadow-lg transition-all

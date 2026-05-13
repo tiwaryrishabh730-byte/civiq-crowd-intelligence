@@ -100,25 +100,30 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
       const lat = coordinates?.lat || 0;
       const lng = coordinates?.lng || 0;
       
-      // Admin Override Logic
-      let finalSessionId = user?.uid || 'anonymous';
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      // Comprehensive Local/Admin Check
+      const isLocalHost = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      
+      let finalSessionId = user?.uid || 'anonymous_session';
+      
+      if (isLocalHost || user?.uid === ADMIN_UID_PLACEHOLDER) {
         finalSessionId = 'operator_rishabh_77';
       }
-      if (user?.uid === ADMIN_UID_PLACEHOLDER) {
-        finalSessionId = 'operator_rishabh_77';
-      }
+
+      const payload = {
+        chatInput: text,
+        user_lat: lat,
+        user_lng: lng,
+        session_id: finalSessionId,
+        user_name: user?.displayName || 'Authorized Operator'
+      };
+
+      console.log("SENTINEL_UPLINK_PAYLOAD:", payload);
 
       const response = await fetch("https://ecology-coasting-whoopee.ngrok-free.dev/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatInput: text,
-          user_lat: lat,
-          user_lng: lng,
-          session_id: finalSessionId,
-          user_name: user?.displayName || 'Unknown Operator'
-        })
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         throw new Error(response.status === 503 || response.status === 404

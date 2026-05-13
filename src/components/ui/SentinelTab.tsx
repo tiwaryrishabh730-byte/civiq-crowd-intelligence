@@ -5,7 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Cpu, Terminal, AlertCircle, RefreshCcw, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { RadarPulse } from './RadarPulse';
-
+const getSessionId = () => {
+  if (typeof window === 'undefined') return ''; // Next.js/SSR safety
+  let id = localStorage.getItem('sentinel_session');
+  if (!id) {
+    id = 'session_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('sentinel_session', id);
+  }
+  return id;
+};
 interface Message {
   sender: 'user' | 'sentinel';
   text: string;
@@ -67,7 +75,8 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
         body: JSON.stringify({
           chatInput: text,
           user_lat: lat,
-          user_lng: lng
+          user_lng: lng,
+          session_id: getSessionId()
         })
       });
 

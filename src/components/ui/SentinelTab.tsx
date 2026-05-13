@@ -68,8 +68,8 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     try {
       const lat = coordinates?.lat || 0;
       const lng = coordinates?.lng || 0;
-
-      const response = await fetch("https://lovely-cooks-cut.loca.lt/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
+      // SentinelTab.tsx update
+      const response = await fetch("https://bright-coins-wink.loca.lt/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,7 +79,6 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
           session_id: getSessionId()
         })
       });
-
       if (!response.ok) {
         throw new Error(response.status === 503 || response.status === 404
           ? "Sentinel is temporarily over-capacity or workflow is inactive. Check n8n."

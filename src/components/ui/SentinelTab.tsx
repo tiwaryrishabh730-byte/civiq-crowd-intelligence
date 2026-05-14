@@ -120,7 +120,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
 
       console.log("SENTINEL_UPLINK_PAYLOAD:", payload);
 
-      const response = await fetch("https://ecology-coasting-whoopee.ngrok-free.dev/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
+      const response = await fetch("https://civiq-backend.onrender.com/webhook/cbcf80b6-cef1-43dc-a0c5-52e94f30cd88", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

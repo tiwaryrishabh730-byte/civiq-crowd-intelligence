@@ -99,13 +99,13 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     try {
       const lat = coordinates?.lat || 0;
       const lng = coordinates?.lng || 0;
-      
+
       // Comprehensive Local/Admin Check
-      const isLocalHost = typeof window !== 'undefined' && 
+      const isLocalHost = typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      
+
       let finalSessionId = user?.uid || 'anonymous_session';
-      
+
       if (isLocalHost || user?.uid === ADMIN_UID_PLACEHOLDER) {
         finalSessionId = 'operator_rishabh_77';
       }
@@ -216,8 +216,8 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] w-full max-w-lg mx-auto bg-black/20 backdrop-blur-md border-x border-[#39FF14]/20 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#39FF14 1px, transparent 1px), linear-gradient(90deg, #39FF14 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="z-10 p-8 bg-black/60 border border-[#39FF14]/30 backdrop-blur-xl flex flex-col items-center gap-6 shadow-[0_0_50px_rgba(57,255,20,0.1)] mx-4"
@@ -230,7 +230,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
               <RadarPulse color="#39FF14" />
             </div>
           </div>
-          
+
           <div className="text-center">
             <h2 className="text-xl font-bold text-[#39FF14] tracking-[0.3em] uppercase neon-text mb-2">CIVIQ SENTINEL</h2>
             <p className="text-[10px] text-[#9AA0A6] font-mono tracking-wider max-w-[240px] uppercase">
@@ -252,7 +252,7 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
               <span className="text-[10px] text-[#EA4335] font-mono leading-tight uppercase tracking-tighter">{error}</span>
             </div>
           )}
-          
+
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1 h-1 rounded-full bg-[#EA4335] animate-pulse" />
             <span className="text-[8px] text-[#EA4335]/70 font-mono uppercase tracking-tighter italic">Secured by G-AUTH Sentinel Protocol</span>
@@ -286,8 +286,8 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
             <span className="text-[9px] text-[#39FF14] font-mono font-bold uppercase truncate max-w-[80px]">{user.displayName?.split(' ')[0]}</span>
             <span className="text-[7px] text-[#9AA0A6] font-mono uppercase tracking-tighter italic">ID: {user.uid.slice(0, 8)}...</span>
           </div>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             title="De-authorize"
             className="p-1.5 border border-[#EA4335]/30 bg-[#EA4335]/10 hover:bg-[#EA4335]/20 transition-all active:scale-90"
           >

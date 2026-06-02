@@ -6,11 +6,25 @@ import { z } from 'zod';
 
 export const maxDuration = 30;
 
-type CrowdUpdateFields = {
+type AuthContext = {
+  token?: string;
+  userId?: string;
+};
+
+type ToolErrorCode =
+  | 'Unauthorized'
+  | 'Missing required field'
+  | 'Validation error'
+  | 'Location not found'
+  | 'Database error';
+
+type CrowdUpdatePayload = {
   status?: string;
   current_wait?: number;
   reported_headcount?: number;
 };
+
+const numberLikeSchema = z.union([z.number(), z.string()]);
 
 const updateCrowdDataInputSchema = z.object({
   location: z.string().optional(),
@@ -22,17 +36,74 @@ const updateCrowdDataInputSchema = z.object({
   status: z.string().optional(),
   crowd_status: z.string().optional(),
   crowdStatus: z.string().optional(),
-  newWaitTime: z.union([z.number(), z.string()]).optional(),
-  waitTime: z.union([z.number(), z.string()]).optional(),
-  current_wait: z.union([z.number(), z.string()]).optional(),
-  currentWait: z.union([z.number(), z.string()]).optional(),
-  newHeadcount: z.union([z.number(), z.string()]).optional(),
-  headcount: z.union([z.number(), z.string()]).optional(),
-  reported_headcount: z.union([z.number(), z.string()]).optional(),
-  reportedHeadcount: z.union([z.number(), z.string()]).optional(),
+  newWaitTime: numberLikeSchema.optional(),
+  waitTime: numberLikeSchema.optional(),
+  current_wait: numberLikeSchema.optional(),
+  currentWait: numberLikeSchema.optional(),
+  newHeadcount: numberLikeSchema.optional(),
+  headcount: numberLikeSchema.optional(),
+  reported_headcount: numberLikeSchema.optional(),
+  reportedHeadcount: numberLikeSchema.optional(),
 }).catchall(z.any());
 
-function firstProvided(input: Record<string, unknown>, keys: string[]): unknown {
+function toolError(code: ToolErrorCode, message: string, details?: Record<string, unknown>) {
+  return {
+    success: false,
+    error: {
+      code,
+      message,
+      details,
+    },
+  };
+}
+
+function toolErrorMessage(code: ToolErrorCode, message: string) {
+  return `${code}: ${message}`;
+}
+
+async function isAuthorized(token?: string) {
+  if (!token) {
+    return false;
+  }
+
+  // Production placeholder:
+  // Replace this with Firebase Admin ID token verification and custom claims,
+  // for example: admin.auth().verifyIdToken(token), then require claims.operator === true.
+  const configuredOperatorToken = process.env.OPERATOR_AUTH_TOKEN;
+  return Boolean(configuredOperatorToken && token === configuredOperatorToken);
+}
+
+function bearerTokenFrom(req: Request) {
+  const authorization = req.headers.get('authorization');
+  if (!authorization) {
+    return undefined;
+  }
+
+  const [scheme, token] = authorization.split(' ');
+  return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
+}
+
+function authContextFrom(req: Request, body: Record<string, unknown>): AuthContext {
+  const bodyAuthContext = body.authContext;
+  const bodyUserSession = body.userSession;
+  const tokenFromBody =
+    typeof bodyAuthContext === 'object' && bodyAuthContext !== null && 'token' in bodyAuthContext
+      ? (bodyAuthContext as { token?: unknown }).token
+      : typeof bodyUserSession === 'object' && bodyUserSession !== null && 'token' in bodyUserSession
+        ? (bodyUserSession as { token?: unknown }).token
+        : undefined;
+  const userId =
+    typeof bodyUserSession === 'object' && bodyUserSession !== null && 'uid' in bodyUserSession
+      ? (bodyUserSession as { uid?: unknown }).uid
+      : undefined;
+
+  return {
+    token: bearerTokenFrom(req) ?? (typeof tokenFromBody === 'string' ? tokenFromBody : undefined),
+    userId: typeof userId === 'string' ? userId : undefined,
+  };
+}
+
+function firstProvided(input: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(input, key) && input[key] !== undefined) {
       return input[key];
@@ -59,104 +130,156 @@ function toFiniteNumber(value: unknown) {
   return undefined;
 }
 
-function getLocation(input: Record<string, unknown>) {
-  return toNonEmptyString(firstProvided(input, ['location', 'place', 'venue', 'station', 'name']));
+function normalizeUpdateInput(input: Record<string, unknown>) {
+  const location = toNonEmptyString(firstProvided(input, ['location', 'place', 'venue', 'station', 'name']));
+  const payload: CrowdUpdatePayload = {
+    status: toNonEmptyString(firstProvided(input, ['newStatus', 'status', 'crowd_status', 'crowdStatus'])),
+    current_wait: toFiniteNumber(firstProvided(input, ['newWaitTime', 'waitTime', 'current_wait', 'currentWait'])),
+    reported_headcount: toFiniteNumber(
+      firstProvided(input, ['newHeadcount', 'headcount', 'reported_headcount', 'reportedHeadcount']),
+    ),
+  };
+  const updatePayload = Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  ) as CrowdUpdatePayload;
+
+  return { location, updatePayload };
 }
 
-function buildCrowdUpdateFields(input: Record<string, unknown>): CrowdUpdateFields {
-  const updateFields: CrowdUpdateFields = {};
-  const status = firstProvided(input, ['newStatus', 'status', 'crowd_status', 'crowdStatus']);
-  const waitTime = firstProvided(input, ['newWaitTime', 'waitTime', 'current_wait', 'currentWait']);
-  const headcount = firstProvided(input, ['newHeadcount', 'headcount', 'reported_headcount', 'reportedHeadcount']);
-  const normalizedStatus = toNonEmptyString(status);
-  const normalizedWaitTime = toFiniteNumber(waitTime);
-  const normalizedHeadcount = toFiniteNumber(headcount);
+function buildSystemPrompt(authContext: AuthContext) {
+  return `You are the CIVIQ Intelligence Agent. Help users check real-time crowd status, traffic insights, and wait times.
 
-  if (normalizedStatus !== undefined) {
-    updateFields.status = normalizedStatus;
-  }
+Tools:
+- getCrowdData: use for reading crowd data. Required parameter: location.
+- updateCrowdData: use only for verified operators. Expected parameters are:
+  - location: exact location name.
+  - status or newStatus or crowd_status: crowd level/status text.
+  - waitTime or newWaitTime or current_wait: wait time in minutes.
+  - headcount or newHeadcount or reported_headcount: observed people count.
 
-  if (normalizedWaitTime !== undefined) {
-    updateFields.current_wait = normalizedWaitTime;
-  }
+Rules:
+- If the user query is ambiguous, do not guess; ask for clarification.
+- If the user is not an operator, do not attempt the updateCrowdData tool call.
+- Never invent location names. Ask for the exact public place if it is missing.
 
-  if (normalizedHeadcount !== undefined) {
-    updateFields.reported_headcount = normalizedHeadcount;
-  }
-
-  return updateFields;
+Current server auth state: ${authContext.token ? 'operator token supplied for server verification' : 'no operator token supplied'}.`;
 }
 
 export async function POST(req: Request) {
   try {
-    const { messages, isOperator } = await req.json();
-    const modelMessages = await convertToModelMessages(messages);
+    const body = await req.json() as Record<string, unknown>;
+    const { messages } = body;
+    const authContext = authContextFrom(req, body);
 
-    // Ensure firestore is available
+    if (!Array.isArray(messages)) {
+      throw new Error('Validation error: request body must include a messages array.');
+    }
+
+    const modelMessages = await convertToModelMessages(
+      messages as Parameters<typeof convertToModelMessages>[0],
+    );
+
     if (!firestore) {
-      throw new Error("Firestore instance is not initialized.");
+      throw new Error('Database error: Firestore instance is not initialized.');
     }
     const db = firestore;
 
     const result = await streamText({
       model: groq('llama-3.3-70b-versatile'),
       messages: modelMessages,
-      system: `You are the CIVIQ Intelligence Agent. Help users check real-time crowd status, traffic insights, and wait times. Always use tools to fetch database entries from Firebase when requested. CRITICAL SECURITY RULE: You can only call the 'updateCrowdData' tool if the operator flag is explicitly true. Current User Status: ${isOperator ? 'AUTHORIZED OPERATOR' : 'NORMAL USER'}. If a normal user tries to update data, refuse politely and do not call the tool.`,
+      system: buildSystemPrompt(authContext),
       stopWhen: stepCountIs(5),
       tools: {
         getCrowdData: tool({
           description: 'Fetch real-time crowd levels and wait times for a specified location.',
           inputSchema: z.object({
             location: z.string().describe('The exact name of the station, e.g., CST Station Ticket Counter'),
-          }),
+          }).catchall(z.any()),
           execute: async ({ location }) => {
             try {
               const q = query(collection(db, 'locations'), where('name', '==', location));
               const querySnapshot = await getDocs(q);
-              if (!querySnapshot.empty) {
-                const data = querySnapshot.docs[0].data();
-                return {
-                  location: data.name,
-                  crowdLevel: data.status || 'Unknown',
-                  estimatedWaitTime: `${data.current_wait || 0} mins`,
-                  reportedHeadcount: data.reported_headcount || 0,
-                };
+
+              if (querySnapshot.empty) {
+                return toolError('Location not found', `No crowd data exists for "${location}".`, { location });
               }
-              return { error: 'Location not found.' };
-            } catch (e) {
-              return { error: 'Database error occurred.' };
+
+              const data = querySnapshot.docs[0].data();
+              return {
+                success: true,
+                location: data.name,
+                crowdLevel: data.status || 'Unknown',
+                estimatedWaitTime: `${data.current_wait || 0} mins`,
+                reportedHeadcount: data.reported_headcount || 0,
+              };
+            } catch (error) {
+              return toolError('Database error', 'Unable to read crowd data from Firebase.', {
+                cause: error instanceof Error ? error.message : 'Unknown database error',
+              });
             }
           },
         }),
         updateCrowdData: tool({
-          description: 'Update real-time crowd status, wait times, or headcount for a location. Operators only.',
+          description: 'Update crowd status, wait time, or headcount for a location. Requires verified operator auth.',
           inputSchema: updateCrowdDataInputSchema,
           execute: async (input) => {
-            if (isOperator !== true) {
-              return { success: false, error: 'Unauthorized.' };
+            if (!(await isAuthorized(authContext.token))) {
+              throw new Error(
+                toolErrorMessage(
+                  'Unauthorized',
+                  'Only verified operators can update crowd data. Ask the user to sign in with an operator account.',
+                ),
+              );
             }
 
-            const location = getLocation(input);
-            const updateFields = buildCrowdUpdateFields(input);
+            const { location, updatePayload } = normalizeUpdateInput(input);
 
             if (!location) {
-              return { success: false, error: 'Location is required.' };
+              return toolError('Missing required field', 'A location is required before crowd data can be updated.', {
+                acceptedAliases: ['location', 'place', 'venue', 'station', 'name'],
+              });
             }
 
-            if (Object.keys(updateFields).length === 0) {
-              return { success: false, error: 'No valid update fields provided.' };
+            if (Object.keys(updatePayload).length === 0) {
+              return toolError(
+                'Validation error',
+                'At least one valid update field is required: status, wait time, or headcount.',
+                {
+                  acceptedAliases: [
+                    'newStatus',
+                    'status',
+                    'crowd_status',
+                    'newWaitTime',
+                    'waitTime',
+                    'current_wait',
+                    'newHeadcount',
+                    'headcount',
+                    'reported_headcount',
+                  ],
+                },
+              );
             }
 
             try {
               const q = query(collection(db, 'locations'), where('name', '==', location));
               const querySnapshot = await getDocs(q);
-              if (!querySnapshot.empty) {
-                await updateDoc(querySnapshot.docs[0].ref, updateFields);
-                return { success: true, message: `Updated ${location} successfully.` };
+
+              if (querySnapshot.empty) {
+                return toolError('Location not found', `Cannot update "${location}" because it was not found.`, {
+                  location,
+                });
               }
-              return { success: false, error: 'Location not found.' };
-            } catch (e) {
-              return { success: false, error: 'Update failed.' };
+
+              await updateDoc(querySnapshot.docs[0].ref, updatePayload);
+              return {
+                success: true,
+                message: `Updated ${location} successfully.`,
+                updatedFields: updatePayload,
+              };
+            } catch (error) {
+              return toolError('Database error', `Unable to update crowd data for "${location}".`, {
+                cause: error instanceof Error ? error.message : 'Unknown database error',
+              });
             }
           },
         }),
@@ -164,10 +287,18 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse();
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'Route error',
+          message: error instanceof Error ? error.message : 'Unexpected chat route failure.',
+        },
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 }

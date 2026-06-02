@@ -47,16 +47,22 @@ function getMessageText(msg: any): string {
 export function SentinelTab({ coordinates }: SentinelTabProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [idToken, setIdToken] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const idTokenRef = useRef<string | null>(null);
 
-  // Stable transport — recreated only when api changes (never here)
   const transport = useMemo(
-    () => new DefaultChatTransport({
-      api: '/api/chat',
-      body: { isOperator: true } // Agar transport accept karta hai
-    }),
+    () =>
+      new DefaultChatTransport({
+        api: '/api/chat',
+        headers: (): Record<string, string> => {
+          const token = idTokenRef.current;
+          if (!token) return {};
+          return { Authorization: `Bearer ${token}` };
+        },
+      }),
     [],
   );
 
@@ -65,13 +71,32 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
+  // ── Auth: fresh ID token on every auth state change ─────────────────────────
   useEffect(() => {
-    if (!auth) return;
-    const unsub = onAuthStateChanged(auth, (u) => {
+    if (!auth) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
+      if (u) {
+        try {
+          const token = await u.getIdToken();
+          idTokenRef.current = token;
+          setIdToken(token);
+        } catch {
+          idTokenRef.current = null;
+          setIdToken(null);
+          setAuthError('Uplink Error: Failed to obtain identity token.');
+        }
+      } else {
+        idTokenRef.current = null;
+        setIdToken(null);
+      }
       setAuthLoading(false);
     });
+
     return () => unsub();
   }, []);
 
@@ -104,6 +129,18 @@ export function SentinelTab({ coordinates }: SentinelTabProps) {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
     setInput('');
+
+    if (user) {
+      try {
+        const freshToken = await user.getIdToken();
+        idTokenRef.current = freshToken;
+        setIdToken(freshToken);
+      } catch {
+        setAuthError('Uplink Error: Identity token expired. Please sign in again.');
+        return;
+      }
+    }
+
     await sendMessage(
       { text: trimmed },
       {

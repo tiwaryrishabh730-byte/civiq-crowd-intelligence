@@ -1,6 +1,7 @@
 import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { firestore } from '@/lib/firebase';
+import { getAdminAuth } from '@/lib/firebase-admin';
 import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { z } from 'zod';
 
@@ -9,6 +10,7 @@ export const maxDuration = 30;
 type AuthContext = {
   token?: string;
   userId?: string;
+  email?: string;
 };
 
 type ToolErrorCode =
@@ -57,20 +59,23 @@ function toolError(code: ToolErrorCode, message: string, details?: Record<string
   };
 }
 
-function toolErrorMessage(code: ToolErrorCode, message: string) {
-  return `${code}: ${message}`;
-}
+const operatorEmail = process.env.OPERATOR_EMAIL?.trim().toLowerCase();
 
-async function isAuthorized(token?: string) {
-  if (!token) {
+const UNAUTHORIZED_OPERATOR_MESSAGE = 'Unauthorized: Not an operator';
+
+/** Verifies the caller's Firebase ID token and matches email to OPERATOR_EMAIL. */
+async function isAuthorized(token?: string): Promise<boolean> {
+  if (!operatorEmail || !token) {
     return false;
   }
 
-  // Production placeholder:
-  // Replace this with Firebase Admin ID token verification and custom claims,
-  // for example: admin.auth().verifyIdToken(token), then require claims.operator === true.
-  const configuredOperatorToken = process.env.OPERATOR_AUTH_TOKEN;
-  return Boolean(configuredOperatorToken && token === configuredOperatorToken);
+  try {
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
+    const tokenEmail = decodedToken.email?.trim().toLowerCase();
+    return Boolean(tokenEmail && tokenEmail === operatorEmail);
+  } catch {
+    return false;
+  }
 }
 
 function bearerTokenFrom(req: Request) {
@@ -83,24 +88,8 @@ function bearerTokenFrom(req: Request) {
   return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
 }
 
-function authContextFrom(req: Request, body: Record<string, unknown>): AuthContext {
-  const bodyAuthContext = body.authContext;
-  const bodyUserSession = body.userSession;
-  const tokenFromBody =
-    typeof bodyAuthContext === 'object' && bodyAuthContext !== null && 'token' in bodyAuthContext
-      ? (bodyAuthContext as { token?: unknown }).token
-      : typeof bodyUserSession === 'object' && bodyUserSession !== null && 'token' in bodyUserSession
-        ? (bodyUserSession as { token?: unknown }).token
-        : undefined;
-  const userId =
-    typeof bodyUserSession === 'object' && bodyUserSession !== null && 'uid' in bodyUserSession
-      ? (bodyUserSession as { uid?: unknown }).uid
-      : undefined;
-
-  return {
-    token: bearerTokenFrom(req) ?? (typeof tokenFromBody === 'string' ? tokenFromBody : undefined),
-    userId: typeof userId === 'string' ? userId : undefined,
-  };
+function authContextFrom(req: Request): AuthContext {
+  return { token: bearerTokenFrom(req) };
 }
 
 function firstProvided(input: Record<string, unknown>, keys: string[]) {
@@ -162,14 +151,14 @@ Rules:
 - If the user is not an operator, do not attempt the updateCrowdData tool call.
 - Never invent location names. Ask for the exact public place if it is missing.
 
-Current server auth state: ${authContext.token ? 'operator token supplied for server verification' : 'no operator token supplied'}.`;
+Current server auth state: ${authContext.token ? 'Firebase ID token supplied for server verification' : 'no Firebase ID token supplied'}.`;
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json() as Record<string, unknown>;
     const { messages } = body;
-    const authContext = authContextFrom(req, body);
+    const authContext = authContextFrom(req);
 
     if (!Array.isArray(messages)) {
       throw new Error('Validation error: request body must include a messages array.');
@@ -223,13 +212,10 @@ export async function POST(req: Request) {
           description: 'Update crowd status, wait time, or headcount for a location. Requires verified operator auth.',
           inputSchema: updateCrowdDataInputSchema,
           execute: async (input) => {
-            if (!(await isAuthorized(authContext.token))) {
-              throw new Error(
-                toolErrorMessage(
-                  'Unauthorized',
-                  'Only verified operators can update crowd data. Ask the user to sign in with an operator account.',
-                ),
-              );
+            const authorized = await isAuthorized(authContext.token);
+
+            if (!authorized) {
+              return toolError('Unauthorized', UNAUTHORIZED_OPERATOR_MESSAGE, { status: 403 });
             }
 
             const { location, updatePayload } = normalizeUpdateInput(input);

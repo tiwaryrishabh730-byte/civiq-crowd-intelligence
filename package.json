@@ -16,6 +16,7 @@
     "@types/leaflet": "^1.9.21",
     "ai": "^6.0.194",
     "firebase": "^12.11.0",
+    "firebase-admin": "^13.10.0",
     "framer-motion": "^12.38.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",

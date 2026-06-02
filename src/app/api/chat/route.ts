@@ -6,6 +6,43 @@ import { z } from 'zod';
 
 export const maxDuration = 30;
 
+type CrowdUpdateFields = {
+  status?: string;
+  current_wait?: number;
+  reported_headcount?: number;
+};
+
+function firstProvided(input: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(input, key) && input[key] !== undefined) {
+      return input[key];
+    }
+  }
+
+  return undefined;
+}
+
+function buildCrowdUpdateFields(input: Record<string, unknown>): CrowdUpdateFields {
+  const updateFields: CrowdUpdateFields = {};
+  const status = firstProvided(input, ['newStatus', 'status', 'crowd_status', 'crowdStatus']);
+  const waitTime = firstProvided(input, ['newWaitTime', 'waitTime', 'current_wait', 'currentWait']);
+  const headcount = firstProvided(input, ['newHeadcount', 'headcount', 'reported_headcount', 'reportedHeadcount']);
+
+  if (typeof status === 'string' && status.trim()) {
+    updateFields.status = status.trim();
+  }
+
+  if (typeof waitTime === 'number' && Number.isFinite(waitTime)) {
+    updateFields.current_wait = waitTime;
+  }
+
+  if (typeof headcount === 'number' && Number.isFinite(headcount)) {
+    updateFields.reported_headcount = headcount;
+  }
+
+  return updateFields;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, isOperator } = await req.json();
@@ -51,26 +88,23 @@ export async function POST(req: Request) {
           description: 'Update real-time crowd status, wait times, or headcount for a location. Operators only.',
           inputSchema: z.object({
             location: z.string(),
-            status: z.string().optional(),
-            waitTime: z.number().optional(),
-            headcount: z.number().optional(),
-          }),
-          execute: async ({ location, status, waitTime, headcount }) => {
-            if (!isOperator) return { success: false, error: 'Unauthorized.' };
+          }).catchall(z.any()),
+          execute: async (input) => {
+            if (isOperator !== true) {
+              return { success: false, error: 'Unauthorized.' };
+            }
+
+            const { location } = input;
+            const updateFields = buildCrowdUpdateFields(input);
+
+            if (Object.keys(updateFields).length === 0) {
+              return { success: false, error: 'No valid update fields provided.' };
+            }
 
             try {
               const q = query(collection(db, 'locations'), where('name', '==', location));
               const querySnapshot = await getDocs(q);
               if (!querySnapshot.empty) {
-                const updateFields: {
-                  status?: string;
-                  current_wait?: number;
-                  reported_headcount?: number;
-                } = {};
-                if (status) updateFields.status = status;
-                if (waitTime !== undefined) updateFields.current_wait = waitTime;
-                if (headcount !== undefined) updateFields.reported_headcount = headcount;
-
                 await updateDoc(querySnapshot.docs[0].ref, updateFields);
                 return { success: true, message: `Updated ${location} successfully.` };
               }

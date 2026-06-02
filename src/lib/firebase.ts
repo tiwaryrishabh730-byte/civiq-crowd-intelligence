@@ -16,7 +16,7 @@ let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
 let auth: Auth | undefined;
 
-if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key_here') {
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key_here') {
   app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
   db = getFirestore(app);
   auth = getAuth(app);

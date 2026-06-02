@@ -12,7 +12,27 @@ type CrowdUpdateFields = {
   reported_headcount?: number;
 };
 
-function firstProvided(input: Record<string, unknown>, keys: string[]) {
+const updateCrowdDataInputSchema = z.object({
+  location: z.string().optional(),
+  place: z.string().optional(),
+  venue: z.string().optional(),
+  station: z.string().optional(),
+  name: z.string().optional(),
+  newStatus: z.string().optional(),
+  status: z.string().optional(),
+  crowd_status: z.string().optional(),
+  crowdStatus: z.string().optional(),
+  newWaitTime: z.union([z.number(), z.string()]).optional(),
+  waitTime: z.union([z.number(), z.string()]).optional(),
+  current_wait: z.union([z.number(), z.string()]).optional(),
+  currentWait: z.union([z.number(), z.string()]).optional(),
+  newHeadcount: z.union([z.number(), z.string()]).optional(),
+  headcount: z.union([z.number(), z.string()]).optional(),
+  reported_headcount: z.union([z.number(), z.string()]).optional(),
+  reportedHeadcount: z.union([z.number(), z.string()]).optional(),
+}).catchall(z.any());
+
+function firstProvided(input: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(input, key) && input[key] !== undefined) {
       return input[key];
@@ -22,22 +42,46 @@ function firstProvided(input: Record<string, unknown>, keys: string[]) {
   return undefined;
 }
 
+function toNonEmptyString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function toFiniteNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+}
+
+function getLocation(input: Record<string, unknown>) {
+  return toNonEmptyString(firstProvided(input, ['location', 'place', 'venue', 'station', 'name']));
+}
+
 function buildCrowdUpdateFields(input: Record<string, unknown>): CrowdUpdateFields {
   const updateFields: CrowdUpdateFields = {};
   const status = firstProvided(input, ['newStatus', 'status', 'crowd_status', 'crowdStatus']);
   const waitTime = firstProvided(input, ['newWaitTime', 'waitTime', 'current_wait', 'currentWait']);
   const headcount = firstProvided(input, ['newHeadcount', 'headcount', 'reported_headcount', 'reportedHeadcount']);
+  const normalizedStatus = toNonEmptyString(status);
+  const normalizedWaitTime = toFiniteNumber(waitTime);
+  const normalizedHeadcount = toFiniteNumber(headcount);
 
-  if (typeof status === 'string' && status.trim()) {
-    updateFields.status = status.trim();
+  if (normalizedStatus !== undefined) {
+    updateFields.status = normalizedStatus;
   }
 
-  if (typeof waitTime === 'number' && Number.isFinite(waitTime)) {
-    updateFields.current_wait = waitTime;
+  if (normalizedWaitTime !== undefined) {
+    updateFields.current_wait = normalizedWaitTime;
   }
 
-  if (typeof headcount === 'number' && Number.isFinite(headcount)) {
-    updateFields.reported_headcount = headcount;
+  if (normalizedHeadcount !== undefined) {
+    updateFields.reported_headcount = normalizedHeadcount;
   }
 
   return updateFields;
@@ -86,16 +130,18 @@ export async function POST(req: Request) {
         }),
         updateCrowdData: tool({
           description: 'Update real-time crowd status, wait times, or headcount for a location. Operators only.',
-          inputSchema: z.object({
-            location: z.string(),
-          }).catchall(z.any()),
+          inputSchema: updateCrowdDataInputSchema,
           execute: async (input) => {
             if (isOperator !== true) {
               return { success: false, error: 'Unauthorized.' };
             }
 
-            const { location } = input;
+            const location = getLocation(input);
             const updateFields = buildCrowdUpdateFields(input);
+
+            if (!location) {
+              return { success: false, error: 'Location is required.' };
+            }
 
             if (Object.keys(updateFields).length === 0) {
               return { success: false, error: 'No valid update fields provided.' };

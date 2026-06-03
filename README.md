@@ -6,7 +6,7 @@ CIVIQ is a next-generation urban crowd monitoring application designed to solve 
 
 **Live Demo**
 
-Check it out here: https://civiq-crowd-intelligence-du92.vercel.app/
+Check it out here: https://civiq-crowd-intelligence.vercel.app/
 
  **Features**
  
